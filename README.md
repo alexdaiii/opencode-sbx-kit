@@ -36,10 +36,11 @@ sbx run --kit <PATH_TO_KIT_DIR>  opencode
 If you are getting this kit from GitHub:
 
 ```bash
-sbx run --kit "git+https://github.com/alexdaiii/opencode-sbx-kit&dir=base"
+sbx run --kit "git+https://github.com/alexdaiii/opencode-sbx-kit.git#ref=main&dir=base"
 ```
 
-You can replace the directory after `&dir=` with your preferred directory.
+You can replace the directory after `&dir=` with the preferred directory.
+The protocol can also be `ssh` instead of `https`.
 
 ## Configuration Details
 
