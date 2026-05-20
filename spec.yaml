@@ -1,0 +1,111 @@
+schemaVersion: "1"
+kind: mixin
+name: opencode-go-auth
+displayName: OpenCode Go Auth
+description: Injects Authentication for OpenCode Go
+
+          # Adding this to opencode.json doesnt seem 
+          # to make this show up
+          # "provider": {
+          #   "myprovider": {
+          #     "npm": "@ai-sdk/openai-compatible",
+          #     "name": "OpenCode Go (Docker Managed)",
+          #     "options": {
+          #       "baseURL": "https://opencode.ai/zen/go/v1",
+          #       "apiKey": "{env:OPENCODE_API_KEY}"
+          #     }
+          #   }
+          # },
+
+
+              # rate limited
+              # "ddg-search": {
+              #   "enabled": true,
+              #   "type": "local",
+              #   "command": ["npx", "duckduckgo-mcp-server"],
+              #   "environment": {
+              #     "DDG_REGION": "us-en"
+              #   }
+              # },
+commands:
+  initFiles:
+    # this doesn't work
+    # - path: /home/agent/.local/share/opencode/auth.json
+    #   content: |
+    #     {
+    #       "opencode-go": {
+    #         "type": "api",
+    #         "key": "proxy-managed"
+    #       }
+    #     }
+    #   onlyIfMissing: false
+    - path: /home/agent/.config/opencode/opencode.json
+      content: |
+        {
+          "$schema": "https://opencode.ai/config.json",
+          "model": "opencode-go/kimi-k2.6",
+          "small_model": "opencode-go/deepseek-v4-flash",
+          "enabled_providers": [
+            "opencode-go",
+            "opencode"
+          ],
+          "mcp": {
+              "pycharm": {
+                "enabled": true,
+                "type": "remote",
+                "url": "http://host.docker.internal:64342/sse",
+                "headers": {}
+              },
+              "deepwiki": {
+                "enabled": true,
+                "type": "remote",
+                "url": "https://mcp.deepwiki.com/mcp"
+              },
+              "semanticscholar": {
+                "enabled": true,
+                "type": "remote",
+                "url": "https://asta-tools.allen.ai/mcp/v1",
+                "headers": {
+                  "x-api-key": "proxy-managed"
+                }
+              }
+          },
+          "permission": {
+            "websearch": "allow"
+          }
+        }
+      onlyIfMissing: false
+
+
+network:
+  allowedDomains:
+    - opencode.ai
+    - asta-tools.allen.ai
+  serviceDomains:
+    opencode.ai: opencode # Tag traffic to this domain
+    asta-tools.allen.ai: allenai
+  serviceAuth:
+    opencode:
+      headerName: Authorization # Overwrite this header
+      valueFormat: "Bearer %s"
+    allenai:
+      headerName: x-api-key
+      valueFormat: "%s"
+
+
+credentials:
+  sources:
+    opencode:
+      env:
+        - OPENCODE_API_KEY # Host-side credential lookup
+    allenai:
+      env:
+        - ALLEN_AI_KEY
+
+environment:
+  proxyManaged:
+    - OPENCODE_API_KEY # Set the in-VM env var to "proxy-managed"
+    - ALLEN_AI_KEY
+  variables:
+    # required to enable websearch (NON PRIVACY!)
+    OPENCODE_ENABLE_EXA: 1
