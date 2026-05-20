@@ -1,0 +1,75 @@
+schemaVersion: "1"
+kind: mixin
+name: opencode-go-auth
+displayName: OpenCode Go Auth Base
+description: Base Kit for injecting authentication for OpenCode Go
+
+commands:
+  initFiles:
+    - path: /home/agent/.config/opencode/opencode.json
+      content: |
+        {
+          "$schema": "https://opencode.ai/config.json",
+          "model": "opencode-go/kimi-k2.6",
+          "small_model": "opencode-go/deepseek-v4-flash",
+          "enabled_providers": [
+            "opencode-go",
+            "opencode"
+          ],
+          "mcp": {
+              "pycharm": {
+                "enabled": true,
+                "type": "remote",
+                "url": "http://host.docker.internal:64342/sse",
+                "headers": {}
+              },
+              "deepwiki": {
+                "enabled": true,
+                "type": "remote",
+                "url": "https://mcp.deepwiki.com/mcp"
+              },
+              "playright": {
+                "enabled": true,
+                "type": "local",
+                "command": ["npx", "@playwright/mcp@latest"],
+              }
+          },
+          "permission": {
+            "websearch": "allow"
+          }
+        }
+      onlyIfMissing: false
+
+
+network:
+  allowedDomains:
+    - opencode.ai
+    - asta-tools.allen.ai
+  serviceDomains:
+    opencode.ai: opencode # Tag traffic to this domain
+    asta-tools.allen.ai: allenai
+  serviceAuth:
+    opencode:
+      headerName: Authorization # Overwrite this header
+      valueFormat: "Bearer %s"
+    allenai:
+      headerName: x-api-key
+      valueFormat: "%s"
+
+
+credentials:
+  sources:
+    opencode:
+      env:
+        - OPENCODE_API_KEY # Host-side credential lookup
+    allenai:
+      env:
+        - ALLEN_AI_KEY
+
+environment:
+  proxyManaged:
+    - OPENCODE_API_KEY # Set the in-VM env var to "proxy-managed"
+    - ALLEN_AI_KEY
+  variables:
+    # required to enable websearch (NON PRIVACY!)
+    OPENCODE_ENABLE_EXA: 1

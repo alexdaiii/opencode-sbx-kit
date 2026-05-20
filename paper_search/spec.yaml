@@ -1,44 +1,11 @@
 schemaVersion: "1"
 kind: mixin
 name: opencode-go-auth
-displayName: OpenCode Go Auth
-description: Injects Authentication for OpenCode Go
+displayName: OpenCode Go Auth Base
+description: Base Kit for injecting authentication for OpenCode Go
 
-          # Adding this to opencode.json doesnt seem 
-          # to make this show up
-          # "provider": {
-          #   "myprovider": {
-          #     "npm": "@ai-sdk/openai-compatible",
-          #     "name": "OpenCode Go (Docker Managed)",
-          #     "options": {
-          #       "baseURL": "https://opencode.ai/zen/go/v1",
-          #       "apiKey": "{env:OPENCODE_API_KEY}"
-          #     }
-          #   }
-          # },
-
-
-              # rate limited
-              # "ddg-search": {
-              #   "enabled": true,
-              #   "type": "local",
-              #   "command": ["npx", "duckduckgo-mcp-server"],
-              #   "environment": {
-              #     "DDG_REGION": "us-en"
-              #   }
-              # },
 commands:
   initFiles:
-    # this doesn't work
-    # - path: /home/agent/.local/share/opencode/auth.json
-    #   content: |
-    #     {
-    #       "opencode-go": {
-    #         "type": "api",
-    #         "key": "proxy-managed"
-    #       }
-    #     }
-    #   onlyIfMissing: false
     - path: /home/agent/.config/opencode/opencode.json
       content: |
         {
