@@ -1,8 +1,8 @@
 schemaVersion: "1"
 kind: mixin
-name: claude-playwright
-displayName: Claude Playwright
-description: Claude Code with PyCharm + DeepWiki + Playwright MCP servers
+name: claude-superpowers
+displayName: Claude Code + Superpowers Plugin
+description: Claude Code with PyCharm + DeepWiki MCP servers and the obra/superpowers plugin (auto-installed via the official marketplace on first launch).
 
 commands:
   initFiles:
@@ -19,11 +19,6 @@ commands:
             "deepwiki": {
               "type": "http",
               "url": "https://mcp.deepwiki.com/mcp"
-            },
-            "playwright": {
-              "type": "stdio",
-              "command": "npx",
-              "args": ["@playwright/mcp@latest"]
             }
           }
         }
@@ -52,8 +47,12 @@ commands:
 
 network:
   allowedDomains:
+    # DeepWiki MCP
     - mcp.deepwiki.com
-    # planning-with-files plugin fetch (first launch).
+    # Claude Code fetches the plugin from GitHub the first time it is enabled.
+    # If you see HTTP 403 "blocked by network policy" on first launch, widen
+    # this list to whatever host the proxy log reports next (likely
+    # objects.githubusercontent.com or raw.githubusercontent.com).
     - github.com
     - codeload.github.com
     - api.github.com

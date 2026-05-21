@@ -5,6 +5,13 @@ displayName: OpenCode Go Auth Base
 description: Base Kit for injecting authentication for OpenCode Go
 
 commands:
+  install:
+    - command: |
+        mkdir -p /home/agent/.config/opencode/skills
+        git clone --depth 1 https://github.com/OthmanAdi/planning-with-files.git /tmp/pwf
+        cp -r /tmp/pwf/skills/planning-with-files /home/agent/.config/opencode/skills/
+        chown -R agent:agent /home/agent/.config/opencode/skills
+        rm -rf /tmp/pwf
   initFiles:
     - path: /home/agent/.config/opencode/opencode.json
       content: |
@@ -37,11 +44,9 @@ commands:
                 }
               }
           },
-          "permission": {
-            "websearch": "allow"
-          }
+          "permission": "allow",
         }
-      onlyIfMissing: false
+      onlyIfMissing: true
 
 
 network:

@@ -6,7 +6,8 @@ description: Claude Code with PyCharm + DeepWiki + Semantic Scholar MCP servers
 
 commands:
   initFiles:
-    - path: /home/agent/.claude.json
+    - path: /home/agent/workspace/.mcp.json
+      onlyIfMissing: true
       content: |
         {
           "mcpServers": {
@@ -28,13 +29,38 @@ commands:
             }
           }
         }
-      onlyIfMissing: false
+    # Proxy-managed Claude Code OAuth placeholder — sbx proxy swaps the
+    # access token for the real Authorization header. See claude/base
+    # for the full explanation. Minimal payload (no subscriptionType /
+    # rateLimitTier) confirmed working 2026-05.
+    - path: /home/agent/.claude/.credentials.json
+      onlyIfMissing: true
+      content: |
+        {
+          "claudeAiOauth": {
+            "accessToken": "sk-ant-oat01-proxy-managed",
+            "refreshToken": "sk-ant-ort01-proxy-managed",
+            "expiresAt": 9999999999999,
+            "scopes": [
+              "user:file_upload",
+              "user:inference",
+              "user:mcp_servers",
+              "user:profile",
+              "user:sessions:claude_code"
+            ]
+          }
+        }
+
 
 
 network:
   allowedDomains:
     - mcp.deepwiki.com
     - asta-tools.allen.ai
+    # planning-with-files plugin fetch (first launch).
+    - github.com
+    - codeload.github.com
+    - api.github.com
   serviceDomains:
     asta-tools.allen.ai: allenai
   serviceAuth:

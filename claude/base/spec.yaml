@@ -6,7 +6,8 @@ description: Base Kit for Claude Code with PyCharm + DeepWiki MCP servers
 
 commands:
   initFiles:
-    - path: /home/agent/.claude.json
+    - path: /home/agent/workspace/.mcp.json
+      onlyIfMissing: true
       content: |
         {
           "mcpServers": {
@@ -21,9 +22,39 @@ commands:
             }
           }
         }
-      onlyIfMissing: false
+    # Proxy-managed Claude Code OAuth placeholder — same pattern as
+    # opencode's OPENCODE_API_KEY=proxy-managed. The real token lives on
+    # the host; the sbx proxy swaps "sk-ant-oat01-proxy-managed" for the
+    # real Authorization header on outbound API calls. No /login prompt,
+    # works across fresh sandboxes. Confirmed empirically 2026-05.
+    # Required fields per testing: accessToken, refreshToken, expiresAt,
+    # scopes. Optional/cosmetic (stripped): subscriptionType, rateLimitTier.
+    # expiresAt is far-future (~year 2286) so Claude Code never tries
+    # to refresh and trigger an OAuth flow the proxy doesn't handle.
+    - path: /home/agent/.claude/.credentials.json
+      onlyIfMissing: true
+      content: |
+        {
+          "claudeAiOauth": {
+            "accessToken": "sk-ant-oat01-proxy-managed",
+            "refreshToken": "sk-ant-ort01-proxy-managed",
+            "expiresAt": 9999999999999,
+            "scopes": [
+              "user:file_upload",
+              "user:inference",
+              "user:mcp_servers",
+              "user:profile",
+              "user:sessions:claude_code"
+            ]
+          }
+        }
 
 
 network:
   allowedDomains:
     - mcp.deepwiki.com
+    # planning-with-files plugin fetch (first launch). Widen if the proxy
+    # log shows another GitHub host being blocked.
+    - github.com
+    - codeload.github.com
+    - api.github.com
