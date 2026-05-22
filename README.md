@@ -71,7 +71,7 @@ sbx run --kit <PATH_TO_KIT_DIR>  opencode
 If you are getting this kit from GitHub:
 
 ```bash
-sbx run --kit "git+https://github.com/alexdaiii/opencode-sbx-kit.git#ref=main&dir=opencode/base" opencode
+sbx run --kit "git+https://github.com/alexdaiii/slopify.git#ref=main&dir=opencode/base" opencode
 ```
 
 You can replace the directory after `&dir=` with the preferred directory.
