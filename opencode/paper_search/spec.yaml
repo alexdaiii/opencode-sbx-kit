@@ -7,13 +7,12 @@ description: Base Kit for injecting authentication for OpenCode Go
 commands:
   install:
     - command: |
-        mkdir -p /home/agent/.config/opencode/skills
+        mkdir -p /home/agent/.agents/skills
         git clone --depth 1 https://github.com/OthmanAdi/planning-with-files.git /tmp/pwf
-        cp -r /tmp/pwf/skills/planning-with-files /home/agent/.config/opencode/skills/
-        chown -R agent:agent /home/agent/.config/opencode/skills
+        cp -r /tmp/pwf/skills/planning-with-files /home/agent/.agents/skills
         rm -rf /tmp/pwf
   initFiles:
-    - path: /home/agent/.config/opencode/opencode.json
+    - path: /home/agent/.config/opencode/opencode.jsonc
       content: |
         {
           "$schema": "https://opencode.ai/config.json",
@@ -45,6 +44,18 @@ commands:
               }
           },
           "permission": "allow",
+          "agent": {
+            "flash": {
+              "mode": "subagent",
+              "description": "{file:~/.config/agents/flash.description.txt}",
+              "model": "opencode-go/deepseek-v4-flash",
+              "permission": {
+                "edit": "allow",
+                "bash": "allow"
+              },
+              "prompt": "{file:~/.config/agents/flash.prompt.md}"
+            }
+          }
         }
       onlyIfMissing: true
 

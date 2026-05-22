@@ -1,0 +1,1 @@
+Prefer this over the general agent for most tasks — it is quicker and cheaper. Only escalate to the general or build agent if this agent is giving bad results or the task requires deep architectural reasoning.
