@@ -52,11 +52,16 @@ network:
     - github.com
     - codeload.github.com
     - api.github.com
+    - paperclip.gxl.ai
   serviceDomains:
     asta-tools.allen.ai: allenai
+    paperclip.gxl.ai: gxl-paperclip
   serviceAuth:
     allenai:
       headerName: x-api-key
+      valueFormat: "%s"
+    gxl-paperclip:
+      headerName: X-API-Key
       valueFormat: "%s"
 
 
@@ -65,7 +70,11 @@ credentials:
     allenai:
       env:
         - ALLEN_AI_KEY
+    gxl-paperclip:
+      env:
+        - PAPERCLIP_API_KEY
 
 environment:
   proxyManaged:
     - ALLEN_AI_KEY
+    - PAPERCLIP_API_KEY

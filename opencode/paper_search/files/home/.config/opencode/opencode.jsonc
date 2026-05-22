@@ -25,6 +25,14 @@
         "headers": {
           "x-api-key": "proxy-managed"
         }
+      },
+      "paperclip": {
+        "enabled": true,
+        "type": "remote",
+        "url": "https://paperclip.gxl.ai/mcp",
+        "headers": {
+          "X-API-Key": "proxy-managed"
+        }
       }
   },
   "permission": "allow",

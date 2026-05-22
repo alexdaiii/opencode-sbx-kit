@@ -15,6 +15,13 @@
       "headers": {
         "x-api-key": "proxy-managed"
       }
+    },
+    "paperclip": {
+      "type": "http",
+      "url": "https://paperclip.gxl.ai/mcp",
+      "headers": {
+        "X-API-Key": "proxy-managed"
+      }
     }
   }
 }

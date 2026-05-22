@@ -11,15 +11,17 @@ A collection of [`sbx`](https://docs.anthropic.com/) sandbox **kits** that confi
 ```
 opencode/
   base/          # OpenCode Go auth + PyCharm MCP + DeepWiki MCP
-  paper_search/  # + Semantic Scholar (AllenAI) MCP
+  paper_search/  # + Semantic Scholar (AllenAI) MCP + Paperclip MCP + research-paper-workflow skill
   playwright/    # + Playwright local MCP
   superpowers/   # + obra/superpowers plugin (autoinstalled by OpenCode)
 claude/
   base/          # Claude Code + PyCharm MCP + DeepWiki MCP
-  paper_search/  # + Semantic Scholar (AllenAI) MCP
+  paper_search/  # + Semantic Scholar (AllenAI) MCP + Paperclip MCP + research-paper-workflow skill
   playwright/    # + Playwright local MCP
   superpowers/   # + obra/superpowers plugin (via claude-plugins-official marketplace)
 ```
+
+Standalone notes for involved third-party integrations live under `notes/` — e.g. `notes/paperclip-gxl.md` documents the Paperclip install script, wheel internals, auth strategies, and the sandbox-kit wiring decision tree. Add a `notes/<topic>.md` whenever an integration requires source-reading or non-trivial reverse-engineering that doesn't fit naturally in `CLAUDE.md`.
 
 The `opencode/` and `claude/` trees mirror each other deliberately — same coverage per row, expressed in each tool's native config schema. Add or remove rows in lock-step. Note the `superpowers/` row uses different mechanisms on each side: OpenCode's `plugin: [...]` array vs Claude Code's `enabledPlugins` + marketplace pair (see the integration section below).
 
@@ -109,7 +111,9 @@ Result: every fresh kit-launched sandbox boots already logged-in, no `/login` pr
 
 ## Editing conventions
 
-- **OpenCode tool config** is embedded as a YAML literal block inside `spec.yaml` under `commands.initFiles[].content`. Must be valid JSON; mind trailing commas (they break the in-sandbox config silently). Writes `/home/agent/.config/opencode/opencode.json`.
+- **OpenCode tool config** lives at `/home/agent/.config/opencode/opencode.json` (or `.jsonc`) in the running sandbox. Two patterns coexist in this repo — both valid, pick the one that fits the kit:
+  - **Inline `initFiles` pattern** (used by `opencode/base`, `playwright`, `superpowers`): embedded as a YAML literal block inside `spec.yaml` under `commands.initFiles[].content`. Must be valid JSON; mind trailing commas (they break the in-sandbox config silently).
+  - **Static file pattern** (used by `opencode/paper_search`): the file is shipped at `files/home/.config/opencode/opencode.jsonc` and gets dropped into place by sbx's static-files injection. Reach for this when the config is long enough that inline-in-YAML becomes painful to edit, or when the file is `.jsonc` (with comments) which doesn't round-trip well through `initFiles[].content`. `paper_search` drifted to this 2026-05 — its `spec.yaml` no longer has an `initFiles` entry for `opencode.json` at all.
 - **Claude Code MCP config — declared inside the kit's local plugin (`kit-plugin/sbx-plugin/.mcp.json`)**. The plugin is auto-enabled at every boot via `~/.claude/settings.json.enabledPlugins["sbx-plugin@sbx"]`, and the `sbx` marketplace is registered via `extraKnownMarketplaces.sbx` pointing at `/home/agent/.config/agents/kit-plugin`. To add or change MCP servers, edit `files/home/.config/agents/kit-plugin/sbx-plugin/.mcp.json` in the kit. Standard Claude Code `mcpServers:` schema (transport types `sse`, `http`, `stdio`). This sidesteps the project-scope `.mcp.json` trust-prompt issue that bit us before, because plugin-supplied MCPs don't trigger that prompt.
 
   **Inconsistency to clean up:** base / paper_search / playwright all load their full MCP list via the plugin's `.mcp.json` (no `~/.claude.json` initFiles entry — paper_search ships semanticscholar there alongside pycharm+deepwiki; playwright ships the playwright stdio server). superpowers still ships a redundant `~/.claude.json` initFiles entry that duplicates pycharm+deepwiki. Future cleanup: move superpowers' MCP list into its own plugin `.mcp.json` and drop the `~/.claude.json` initFiles entry. Until then, MCPs are deduplicated by name at load time.
@@ -156,10 +160,17 @@ Result: every fresh kit-launched sandbox boots already logged-in, no `/login` pr
 - **MCP schemas differ between the two stacks** — don't paste OpenCode entries into a Claude kit:
   - OpenCode uses a top-level `mcp:` block. `type: remote` covers HTTP and SSE servers; `type: local` covers stdio. Stdio servers take a combined `command: ["argv", "array"]`.
   - Claude Code uses `mcpServers:` with explicit transport types `sse`, `http`, or `stdio`. Stdio servers take `command: "executable"` (string) plus `args: [...]`.
-- **Adding a new MCP server**: edit the appropriate `mcp:` block (OpenCode `initFiles` → `opencode.json`) or the `mcpServers` block inside `files/home/.config/agents/kit-plugin/sbx-plugin/.mcp.json` (Claude). If it needs network access, add the host to `network.allowedDomains` and (if it needs proxy-injected auth) wire `serviceDomains` → `serviceAuth` → `credentials.sources` and list any in-sandbox env var under `environment.proxyManaged`. The proxy only injects HTTP **headers** — services that authenticate via URL query params (e.g. NCBI E-utilities `?api_key=…`) can't be wired through this path.
+- **Adding a new MCP server**: edit the appropriate `mcp:` block (OpenCode — either `initFiles` writing `opencode.json` OR the static `files/home/.config/opencode/opencode.jsonc`, depending on which pattern the kit uses) or the `mcpServers` block inside `files/home/.config/agents/kit-plugin/sbx-plugin/.mcp.json` (Claude). If it needs network access, add the host to `network.allowedDomains` and (if it needs proxy-injected auth) wire `serviceDomains` → `serviceAuth` → `credentials.sources` and list any in-sandbox env var under `environment.proxyManaged`. The proxy only injects HTTP **headers** — services that authenticate via URL query params (e.g. NCBI E-utilities `?api_key=…`) can't be wired through this path.
+
+  **Worked example — Paperclip MCP (added 2026-05).** The `paper_search` kits route through `https://paperclip.gxl.ai/mcp` with header `X-API-Key: proxy-managed`. Host secret name: `gxl-paperclip`. In-sandbox env var name: `PAPERCLIP_API_KEY` (the canonical name per paperclip's own SDK, even though we don't read it from the env directly when going MCP-only — keeping the env var matches paperclip's docs and lets users add the CLI later without renaming). The naming chain — `network.serviceDomains.<host>: <service-key>` ⇒ `network.serviceAuth.<service-key>` ⇒ `credentials.sources.<service-key>` — must use the same `<service-key>` throughout (we use `gxl-paperclip`). Header case matters to some upstreams: paperclip's SDK sends `X-API-Key` (capital), allenai's takes lowercase `x-api-key`. Don't normalize. Full source-level analysis of paperclip's auth, install script, and skill mechanism in `notes/paperclip-gxl.md`.
 - **Adding a new kit**: copy a sibling directory under `opencode/` or `claude/`, edit `spec.yaml`, and place any sandbox-side files under `files/<absolute path>`. Then update the README's kit list — both OpenCode and Claude Code sections when applicable. For claude kits, copy from `base` (or any of paper_search / playwright, which share an identical `settings.json`) when adding the next baseline kit; copy from `superpowers` only if the new kit also wants the `superpowers@claude-plugins-official` plugin. `merge_settings.py` is identical across all four claude kits — keep it that way.
 - **Python in the sandbox is `python3`** (not `python`). Use that explicitly in startup commands and scripts; relying on a `python` symlink will break.
-- **Subagent definitions** live in `files/home/.config/opencode/agents/` (OpenCode only; Claude Code uses a different agent mechanism). Plain markdown with YAML frontmatter (`mode`, `model`, `permission`). The current `flash.md` is identical across the four opencode kits — keep it in sync if you change one.
+- **Subagent definitions** live in `files/home/.config/opencode/agents/` (OpenCode only; Claude Code's subagent mechanism is separate from skills). Plain markdown with YAML frontmatter (`mode`, `model`, `permission`). The current `flash.md` is identical across the four opencode kits — keep it in sync if you change one.
+- **Skills (both stacks)** — kit-shipped skills are markdown files with YAML frontmatter that the agent loads on demand by description match. The on-disk filename is `SKILL.md` (all caps; OpenCode enforces this case-sensitively).
+  - **Claude Code**: plugin-scoped at `files/home/.config/agents/kit-plugin/sbx-plugin/skills/<skill-name>/SKILL.md`. Frontmatter: `description` is the only recommended field; `name` is optional and defaults to the directory name. The plugin's skills are namespaced as `sbx-plugin:<skill-name>` in `/` autocomplete and in `/mcp` listings.
+  - **OpenCode**: at `files/home/.config/opencode/skills/<skill-name>/SKILL.md`. Frontmatter: **both `name` AND `description` are required** (unlike Claude Code). OpenCode loads skills via a `skill()` tool — the model calls `skill({name: "..."})` when the description matches.
+  - When the same workflow rule applies to both kits, ship parallel `SKILL.md` files with identical content modulo tool-name casing (Claude uses `WebFetch`/`Read`/`Edit`; OpenCode uses `webfetch`/`read`/`edit`). The current `research-paper-workflow` skill in `claude/paper_search` and `opencode/paper_search` is the reference example — keep them in sync.
+  - Use skills for **rules + workflow patterns** that decide *which tool* to reach for (e.g. "paperclip MCP before WebFetch for indexed papers"). Don't use them to duplicate documentation that ships with an upstream tool — the upstream `paperclip` SKILL.md (CLI-focused, 505 lines, auto-refreshing every 4hrs from `paperclip.gxl.ai/skills/skill.md`) is intentionally NOT shipped by our kits because we're MCP-only.
 
 ## Model defaults
 
